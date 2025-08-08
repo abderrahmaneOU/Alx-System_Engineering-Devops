@@ -1,0 +1,114 @@
+Secured and Monitored Web Infrastructure for www.foobar.com
+
+                      +---------------------------+
+                      |    User's Browser (HTTPS) |
+                      +------------+--------------+
+                                   |
+                      DNS resolves www.foobar.com to LB IP
+                                   |
+                                   v
+                          +----------------+
+                          | Load Balancer  |
+                          |  (HAProxy)     |
+                          | [SSL Enabled]  |
+                          +---+-------+----+
+                              |       |
+                        FW1   |       |   FW2
+                          +---+       +---+
+                          v               v
+              +----------------+   +----------------+
+              |  App/Web Server|   |  App/Web Server|
+              |     (Nginx)    |   |     (Nginx)    |
+              |     + App      |   |     + App      |
+              |     + MonAgent |   |     + MonAgent |
+              +--------+-------+   +--------+-------+
+                       | FW3               |
+                       +-------------------+
+                                 |
+                                 v
+                       +------------------+
+                       | MySQL Database   |
+                       |  + MonAgent      |
+                       +------------------+
+
+All communication between components happens over internal IPs except for HTTPS traffic from users.
+
+--------------------------
+Components & Their Purpose:
+--------------------------
+
+- **Load Balancer (HAProxy)**:
+  - Balances traffic between the two app servers.
+  - Uses HTTPS (SSL termination).
+  - Adds fault tolerance and scalability.
+
+- **SSL Certificate**:
+  - Installed at the Load Balancer.
+  - Enables encrypted HTTPS communication from clients to LB.
+  - Protects sensitive user data (login, payment, etc.)
+
+- **Firewalls (FW1, FW2, FW3)**:
+  - Control incoming/outgoing traffic.
+  - Block unauthorized access.
+  - Filter traffic based on IP, port, and protocol.
+  - Each server has its own firewall.
+
+- **Monitoring Clients**:
+  - Installed on each server.
+  - Collect performance data, logs, error reports.
+  - Example tools: SumoLogic, Prometheus node_exporter, Datadog Agent.
+  - Send data to a centralized monitoring service/dashboard.
+
+- **Web Servers (Nginx)**:
+  - Handle HTTP requests and static content.
+  - Forward dynamic content to the app.
+
+- **Application Servers**:
+  - Run the backend logic.
+  - Respond to frontend requests and query the database.
+
+- **Database (MySQL)**:
+  - Stores all site data.
+  - Accepts write and read operations.
+
+--------------------------
+Why Each Extra Element Is Added:
+--------------------------
+- **3 Firewalls**:
+  - Each server is protected individually.
+  - Prevents lateral movement if one is compromised.
+
+- **HTTPS via SSL**:
+  - Encrypts traffic between users and load balancer.
+  - Prevents data leaks, MITM attacks.
+
+- **Monitoring Clients**:
+  - Provide insights into resource usage (CPU, RAM, Disk).
+  - Help detect issues and alerts.
+  - Collect QPS (queries per second), request rates, error rates, etc.
+
+--------------------------
+Monitoring QPS (Queries Per Second):
+--------------------------
+- Configure Nginx/HAProxy logs to export metrics.
+- Use monitoring tools (e.g. Prometheus with exporters or SumoLogic) to track request rate.
+- Add custom dashboards to visualize QPS in real-time.
+
+--------------------------
+Infrastructure Limitations:
+--------------------------
+
+1. **SSL Termination at Load Balancer**:
+   - If SSL ends at the LB, internal traffic to servers is unencrypted.
+   - Solution: Use HTTPS internally or enforce zero-trust networking.
+
+2. **Single MySQL Write Node**:
+   - The DB is a SPOF.
+   - If it goes down, the whole app cannot write data.
+   - Solution: Set up replication with failover or clustering.
+
+3. **Same Components on Each Server**:
+   - Increases complexity of deployments and management.
+   - Resource contention (web + app on same machine).
+   - Better practice: separate app, web, and DB roles on different nodes.
+
