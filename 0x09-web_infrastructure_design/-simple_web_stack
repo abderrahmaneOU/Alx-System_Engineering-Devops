@@ -1,0 +1,63 @@
+One Server Web Infrastructure for www.foobar.com
+
+       +------------------------+
+       |   User's Browser       |
+       | www.foobar.com         |
+       +-----------+------------+
+                   |
+                   v
+       DNS resolves www.foobar.com to 8.8.8.8
+                   |
+                   v
+        +---------------------------+
+        |       Web Server (Nginx)  |
+        +-------------+-------------+
+                      |
+                      v
+        +---------------------------+
+        | Application Server (e.g.  |
+        | Gunicorn, PHP-FPM)        |
+        +-------------+-------------+
+                      |
+                      v
+        +---------------------------+
+        |      MySQL Database       |
+        +---------------------------+
+
+Everything runs on a single server with IP address: 8.8.8.8
+
+----------------------------------------
+Components Explained:
+
+- Server:
+  A physical or virtual machine that hosts the website's software stack.
+
+- Domain Name:
+  'foobar.com' maps to the server's IP address, making it easier for users to access.
+
+- DNS Record:
+  The 'www' in 'www.foobar.com' is a subdomain. It typically uses an A record to point to 8.8.8.8.
+
+- Web Server (Nginx):
+  Handles incoming HTTP(S) requests, serves static files, and forwards dynamic requests to the app server.
+
+- Application Server:
+  Runs the backend application logic (e.g. Python, PHP, etc.), processes requests, and sends results to the web server.
+
+- Database (MySQL):
+  Stores all data such as user info, posts, transactions, etc.
+
+- Communication:
+  Users connect via HTTP or HTTPS to 8.8.8.8 using their browser. Nginx processes the request, app server handles business logic, DB returns data.
+
+----------------------------------------
+Limitations of This Setup:
+
+1. Single Point of Failure (SPOF):
+   If the one server goes down, the whole site is unavailable.
+
+2. Downtime During Maintenance:
+   Updating code or restarting the web server causes temporary downtime.
+
+3. No Scalability:
+   One server has limited resources and cannot handle large traffic spikes.
