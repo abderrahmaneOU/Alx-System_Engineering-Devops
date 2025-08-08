@@ -1,0 +1,111 @@
+Three-Server Web Infrastructure for www.foobar.com
+
+          +----------------------+
+          |   User Browser       |
+          | www.foobar.com       |
+          +----------+-----------+
+                     |
+                     | DNS resolves to LB IP (e.g., 8.8.8.8)
+                     v
+          +----------------------+
+          |   Load Balancer      |
+          |    (HAProxy)         |
+          +----+----------+------+
+               |          |
+         +-----+----+ +---+------+
+         |  Web/App  | | Web/App |
+         |  Server 1 | | Server 2|
+         | (Nginx +  | | (Nginx +|
+         |  App +    | |  App +  |
+         |  Code)    | |  Code)  |
+         +-----+-----+ +----+----+
+               \           /
+                \         /
+                 v       v
+               +-------------+
+               |  MySQL DB   |
+               +-------------+
+
+Explanation of Components:
+--------------------------
+
+- Load Balancer (HAProxy):
+  Distributes traffic evenly between Server 1 and Server 2.
+  Ensures high availability and failover support.
+
+- Web Server (Nginx):
+  Handles static content and routes dynamic requests to app server.
+
+- Application Server:
+  Runs backend logic (e.g., PHP, Python) using application files.
+
+- Application Files:
+  Codebase deployed identically on both Server 1 and Server 2.
+
+- MySQL Database:
+  Centralized storage used by both app servers.
+
+Why Each Element Exists:
+------------------------
+- Additional Server (2 total):
+  Increases availability and allows load distribution.
+
+- Load Balancer:
+  Prevents any one server from being overwhelmed; provides fault tolerance.
+
+- Nginx:
+  Optimized for high-performance web serving.
+
+- HAProxy:
+  Configured with round-robin algorithm to distribute traffic evenly.
+
+Distribution Algorithm:
+-----------------------
+- **Round-Robin**:
+  Each new request is sent to the next server in a circular order.
+  Example: Request 1 → Server 1, Request 2 → Server 2, Request 3 → Server 1, etc.
+
+Active-Active vs Active-Passive:
+--------------------------------
+- **Active-Active**:
+  Both servers actively handle traffic at the same time.
+  If one fails, the other continues handling requests.
+
+- **Active-Passive**:
+  One server handles all traffic; the other remains on standby.
+  HAProxy here uses an Active-Active setup.
+
+Database Clustering (Primary-Replica):
+--------------------------------------
+- In a Primary-Replica setup:
+  - **Primary (Master):** Handles all write operations.
+  - **Replica (Slave):** Handles read operations and replicates changes from Primary.
+
+- In this infrastructure:
+  - Application writes to the Primary node.
+  - Reads can be distributed to Replica nodes if added (not shown here but explainable).
+
+Differences Between Primary and Replica:
+----------------------------------------
+- **Primary Node:**
+  - Accepts both read and write operations.
+  - Responsible for updating data.
+
+- **Replica Node:**
+  - Read-only.
+  - Updated asynchronously from Primary.
+
+Issues in This Infrastructure:
+------------------------------
+
+1. **Single Point of Failure (SPOF):**
+   - The **Database** is a SPOF — if it goes down, the application can't function.
+   - The **Load Balancer** is also a SPOF unless you set up a backup LB (not in this design).
+
+2. **Security Issues:**
+   - No firewall to filter traffic or prevent attacks.
+   - No HTTPS (SSL/TLS) for secure user communication.
+
+3. **No Monitoring:**
+   - No system in place to track server health, performance, or automatic recovery.
+
