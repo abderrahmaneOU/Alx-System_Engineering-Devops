@@ -1,0 +1,98 @@
+Scale-Up Web Infrastructure for www.foobar.com
+
+Goal: Improve fault tolerance and scalability by splitting infrastructure components and clustering the load balancer.
+
+                           +---------------------+
+                           |  User Browser (HTTPS)|
+                           +----------+----------+
+                                      |
+                     DNS resolves www.foobar.com to HAProxy Cluster IP
+                                      |
+               +----------------------+----------------------+
+               |                                             |
+    +-------------------------+                 +-------------------------+
+    |  Load Balancer (HAProxy)| <--Cluster-->   |  Load Balancer (HAProxy)|
+    +------------+------------+                 +------------+------------+
+                 |                                             |
+        +--------+--------+                           +--------+--------+
+        |                 |                           |                 |
++---------------+  +---------------+         +---------------+  +---------------+
+| Web Server    |  | Web Server    |         | Web Server    |  | Web Server    |
+| (Nginx Only)  |  | (Nginx Only)  |         | (Scalable)    |  | (Optional)    |
++------+--------+  +------+--------+         +---------------+  +---------------+
+       |                  |                             
+       v                  v                             
++----------------+  +----------------+
+| App Server     |  | App Server     |
+| (e.g. Gunicorn)|  | (e.g. Gunicorn)|
++-------+--------+  +--------+-------+
+        \                  /
+         \                /
+           v            v
+        +------------------+
+        |   MySQL Database |
+        |   (Write-enabled)|
+        +------------------+
+
+Components Breakdown:
+----------------------
+
+1. **Added Server**:
+   - A 4th server was added to support either the second load balancer or separate one of the components (e.g., database).
+   - Improves fault tolerance and performance under load.
+
+2. **HAProxy Cluster (2 Load Balancers)**:
+   - If one LB fails, the second takes over (failover).
+   - Increases uptime.
+   - Configured for **Active-Passive** or **Active-Active** depending on setup.
+
+3. **Split Components**:
+   - **Web Server** (Nginx) now on its own server to focus on handling HTTP requests and serving static files.
+   - **App Server** (e.g., Gunicorn or PHP-FPM) handles application logic, API requests.
+   - **Database Server** (MySQL) is isolated to improve security, performance, and scalability.
+
+----------------------
+Why Each Element Is Added:
+----------------------
+
+- **New Server**: Allows for horizontal scaling — each role can grow independently.
+- **Load Balancer Cluster**: Eliminates single point of failure (SPOF) at the entry point.
+- **Component Separation**: Avoids resource contention (e.g., web server and app server fighting for CPU).
+- **MySQL Isolation**: Improves data security, and performance tuning becomes easier.
+
+----------------------
+Application Server vs Web Server:
+----------------------
+
+- **Web Server (Nginx)**:
+  - Handles client HTTP(S) requests.
+  - Serves static files (HTML, JS, CSS, images).
+  - Acts as a reverse proxy to the app server.
+
+- **Application Server**:
+  - Executes the backend application code (business logic).
+  - Connects to the database.
+  - Returns dynamic responses to the web server.
+
+----------------------
+Infrastructure Benefits:
+----------------------
+
+- Easier to scale each layer independently.
+- Easier to troubleshoot (e.g., app issue ≠ web server issue).
+- Fault tolerance at the load balancer level.
+- Prepared for future database replication and load balancing.
+
+----------------------
+Potential Issues:
+----------------------
+
+- **HAProxy Cluster Requires Extra Configuration**:
+  - DNS failover or VRRP (keepalived) for IP sharing.
+
+- **Database Still a SPOF**:
+  - No replica set — write availability still depends on one server.
+
+- **More Complexity**:
+  - More components = more to maintain, more moving parts.
+
